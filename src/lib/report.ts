@@ -9,7 +9,7 @@ import { archetypes, lifePath, strengthsPool, growthPool, weeklyPool, affirmatio
 import type { L, ResourceRow } from '../content/library';
 import { lifePathNumber, periodEnergy } from './numerology';
 import { buildMatrix, balanceValues } from './matrix';
-import type { MatrixPoint } from './matrix';
+import type { MatrixPoint, MatrixPurpose } from './matrix';
 import { ikigaiDirections } from './ikigai';
 import type { IkigaiAnswers } from './ikigai';
 import { seedFromString, mulberry32, pickN } from './random';
@@ -26,7 +26,7 @@ export interface Report {
   name: string;
   archetypeValue: number;
   lifePathValue: number;
-  matrix: { points: MatrixPoint[]; center: number };
+  matrix: { points: MatrixPoint[]; center: number; purpose: MatrixPurpose };
   strengths: L[];
   growth: L[];
   directions: { ru: string[]; en: string[] };
