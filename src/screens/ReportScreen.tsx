@@ -1,9 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { useLang } from '../i18n';
 import { useSettings } from '../lib/settings';
 import { playClick, playChime } from '../lib/audio';
 import { haptic } from '../lib/haptics';
 import { archetypes, lifePath } from '../lib/report';
+import { arcanaTexts } from '../content/arcana';
 import type { Report } from '../lib/report';
 import { MatrixWheel, RadarChart, IkigaiVenn, ProgressRing } from '../components/Charts';
 import { shareText, downloadShareCard } from '../lib/share';
@@ -15,6 +17,27 @@ function Section({ title, note, children, delay = 0 }: { title: string; note?: s
       {note && <p className="mt-1 text-sm text-lavender/75">{note}</p>}
       <div className="mt-5">{children}</div>
     </section>
+  );
+}
+
+function DecodeItem({ label, value }: { label: string; value: number }) {
+  const { t, lang } = useLang();
+  const [open, setOpen] = useState(false);
+  const a = archetypes[value];
+  const x = arcanaTexts[value];
+  return (
+    <div className="rounded-2xl border border-white/80 bg-white/50">
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full flex-wrap items-center justify-between gap-2 px-4 py-3 text-left">
+        <span className="text-sm text-pearl/90">{label}</span>
+        <span className="font-display text-lg text-champagne">{value} · {a.name[lang]} <span className="ml-1 text-lavender">{open ? '−' : '+'}</span></span>
+      </button>
+      <div className={`${open ? 'block' : 'hidden'} print:block px-4 pb-4 text-sm leading-relaxed text-pearl/85`}>
+        <p>{x.long[lang]}</p>
+        <p className="mt-2"><span className="text-lavender">✦ {t.report.inPlus}: </span>{x.plus[lang]}</p>
+        <p className="mt-1"><span className="text-lavender">🌱 {t.report.growthZone}: </span>{x.growth[lang]}</p>
+        <p className="mt-1 italic text-pearl/70">{x.tip[lang]}</p>
+      </div>
+    </div>
   );
 }
 
@@ -49,6 +72,14 @@ export default function ReportScreen({ report, onRestart }: { report: Report; on
 
   return (
     <div className="relative z-10 mx-auto max-w-3xl px-5 py-8">
+      {/* Print-only cover page for the PDF export */}
+      <div className="hidden print:block text-center" style={{ pageBreakAfter: 'always', paddingTop: '60mm' }}>
+        <p className="tracking-[0.4em] text-lavender">L U M I N A</p>
+        <p className="mt-8 font-display text-5xl text-champagne">{t.report.greeting(report.name)}</p>
+        <p className="mt-4 text-sm text-pearl/70">{new Date().toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US')}</p>
+        <p className="mx-auto mt-12 max-w-md text-xs leading-relaxed text-pearl/60">{t.report.disclaimerInline}</p>
+      </div>
+
       {/* Greeting */}
       <header className="animate-fadeUp text-center">
         <h2 className="gold-text font-display text-5xl font-semibold md:text-6xl">{t.report.greeting(report.name)}</h2>
@@ -97,6 +128,19 @@ export default function ReportScreen({ report, onRestart }: { report: Report; on
               <p className="text-sm text-pearl/85">{archetypes[v].name[lang]}</p>
             </div>
           ))}
+        </div>
+      </Section>
+
+      {/* Full decoding of every position */}
+      <Section title={t.report.decode} note={t.report.decodeNote} delay={0.22}>
+        <div className="grid gap-3">
+          {report.matrix.points.map((p) => (
+            <DecodeItem key={p.key} label={t.report.posLabels[p.key]} value={p.value} />
+          ))}
+          <DecodeItem label={t.report.posLabels.center} value={report.matrix.center} />
+          <DecodeItem label={t.report.posLabels.sky} value={report.matrix.purpose.sky} />
+          <DecodeItem label={t.report.posLabels.earth} value={report.matrix.purpose.earth} />
+          <DecodeItem label={t.report.posLabels.personal} value={report.matrix.purpose.personal} />
         </div>
       </Section>
 
@@ -178,6 +222,11 @@ export default function ReportScreen({ report, onRestart }: { report: Report; on
             <p className="text-sm uppercase tracking-widest text-lavender">{t.report.energyMonth}</p>
             <p className="mt-2 leading-relaxed text-pearl/90">{report.energyMonth[lang]}</p>
           </div>
+          <div className="rounded-2xl border border-gold/40 bg-white/50 p-5 sm:col-span-2">
+            <p className="text-sm uppercase tracking-widest text-lavender">{t.report.yearArcanaTitle}</p>
+            <p className="gold-text mt-1 font-display text-3xl">{report.yearArcana} · {archetypes[report.yearArcana].name[lang]}</p>
+            <p className="mt-2 leading-relaxed text-pearl/90">{arcanaTexts[report.yearArcana].long[lang]}</p>
+          </div>
         </div>
       </Section>
 
@@ -223,6 +272,7 @@ export default function ReportScreen({ report, onRestart }: { report: Report; on
           onClick={async () => { click(); await navigator.clipboard.writeText(storyText); say(t.report.copied); }}
         >{t.report.btnCopy}</button>
         <button className="btn-ghost" onClick={() => { click(); onRestart(); }}>{t.report.btnAgain}</button>
+        <Link className="btn-ghost" to="/pair" onClick={click}>{t.report.btnPair} 💞</Link>
         <button className="btn-ghost !border-lavender/30 !text-pearl/60" onClick={clearData}>{t.report.clearData}</button>
       </div>
 
