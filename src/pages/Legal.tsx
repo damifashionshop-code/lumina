@@ -31,7 +31,7 @@ const lawyerNote = {
 export function Terms() {
   const { lang } = useLang();
   const ru = [
-    { h: '1. Назначение сайта', p: ['Сайт Lumina предназначен исключительно для развлечения, творческой саморефлексии и улучшения настроения. Все отчёты, расчёты и интерпретации являются художественной игрой.'] },
+    { h: '1. Назначение сайта', p: ['Сайт Lumina предназначен исключительно для развлечения, творческой саморефлексии и улучшения настроения. Все отчёты, расчёты и интерпретации являются художественной интерпретацией развлекательного характера.'] },
     { h: '2. Характер результатов', p: ['Результаты не являются фактом, прогнозом, гарантией, диагнозом или профессиональной консультацией. Они не предсказывают будущее и не описывают объективные свойства личности.'] },
     { h: '3. Ответственность пользователя', p: ['Пользователь не должен принимать важные жизненные, финансовые, медицинские, юридические или иные решения только на основании отчёта.', 'Пользователь самостоятельно отвечает за любое использование информации с сайта.', 'Владелец проекта не несёт ответственности за действия пользователя, совершённые на основании развлекательного отчёта.'] },
     { h: '4. Не замена специалистам', p: ['Запрещено использовать сайт как замену консультациям квалифицированных специалистов: врачей, психологов, психотерапевтов, юристов, финансовых консультантов. При необходимости обращайтесь к профильным специалистам.'] },
@@ -39,7 +39,7 @@ export function Terms() {
     { h: '6. Согласие', p: ['Перед генерацией отчёта пользователь подтверждает согласие с развлекательным характером проекта, отмечая соответствующие пункты на экране согласия. Без подтверждения отчёт не создаётся.'] },
   ];
   const en = [
-    { h: '1. Purpose of the site', p: ['Lumina is intended exclusively for entertainment, creative self-reflection and mood improvement. All reports, calculations and interpretations are an artistic game.'] },
+    { h: '1. Purpose of the site', p: ['Lumina is intended exclusively for entertainment, creative self-reflection and mood improvement. All reports, calculations and interpretations are an artistic interpretation of an entertainment nature.'] },
     { h: '2. Nature of results', p: ['Results are not facts, forecasts, guarantees, diagnoses or professional advice. They do not predict the future and do not describe objective personality traits.'] },
     { h: '3. User responsibility', p: ['Users must not make important life, financial, medical, legal or other decisions based solely on the report.', 'Users are solely responsible for any use of information from this site.', 'The project owner is not liable for user actions taken on the basis of this entertainment report.'] },
     { h: '4. Not a substitute for professionals', p: ['It is prohibited to use the site as a substitute for consultations with qualified professionals: doctors, psychologists, psychotherapists, lawyers, financial advisors. When needed, please consult the relevant specialists.'] },
@@ -72,12 +72,12 @@ export function Disclaimer() {
   const { lang, t } = useLang();
   const ru = [
     { p: [t.footer.disclaimer] },
-    { p: ['Этот развлекательный self-discovery проект не предсказывает судьбу, не ставит диагнозы и не заменяет консультации специалистов. Используйте результат как игру, вдохновение и повод улыбнуться.'] },
+    { p: ['Этот развлекательный self-discovery проект не предсказывает судьбу, не ставит диагнозы и не заменяет консультации специалистов. Используйте результат как источник вдохновения и повод улыбнуться.'] },
     { p: ['Если вам сейчас тяжело эмоционально, пожалуйста, обратитесь к близким или к квалифицированному специалисту — забота о себе важнее любых отчётов.'] },
   ];
   const en = [
     { p: [t.footer.disclaimer] },
-    { p: ['This entertainment self-discovery project does not predict fate, does not diagnose and does not replace professional consultations. Use the result as a game, an inspiration and a reason to smile.'] },
+    { p: ['This entertainment self-discovery project does not predict fate, does not diagnose and does not replace professional consultations. Use the result as a source of inspiration and a reason to smile.'] },
     { p: ['If you are going through an emotionally hard time, please reach out to loved ones or a qualified professional — taking care of yourself matters more than any report.'] },
   ];
   return <LegalLayout title={lang === 'ru' ? 'Отказ от ответственности' : 'Disclaimer'} blocks={lang === 'ru' ? ru : en} lawyerNote={lawyerNote[lang]} />;
