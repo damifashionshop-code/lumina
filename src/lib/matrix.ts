@@ -54,6 +54,25 @@ export function yearArcana(iso: string, now = new Date()): number {
   return to22(to22(d) + m + to22(digitSum(now.getFullYear())));
 }
 
+/** Personal arcana of a specific day: birth day + month + reduced digit sum of the calendar date. */
+export function dayArcana(iso: string, date = new Date()): number {
+  const [, m, d] = iso.split('-').map(Number);
+  const dsum = digitSum(date.getDate()) + digitSum(date.getMonth() + 1) + digitSum(date.getFullYear());
+  return to22(to22(d) + m + to22(dsum));
+}
+
+/** "Bright" arcana — days of special shine in the personal calendar. */
+export const BRIGHT_ARCANA = new Set([3, 6, 10, 17, 19, 21, 22]);
+
+/** Group matrix for 2–5 people: pointwise sums of all matrices, reduced to 1–22. */
+export function groupMatrix(isos: string[]): { points: MatrixPoint[]; center: number; purpose: MatrixPurpose } {
+  const ms = isos.map(buildMatrix);
+  const points = ms[0].points.map((pt, i) => ({ key: pt.key, value: to22(ms.reduce((a, m) => a + m.points[i].value, 0)) }));
+  const sky = to22(ms.reduce((a, m) => a + m.purpose.sky, 0));
+  const earth = to22(ms.reduce((a, m) => a + m.purpose.earth, 0));
+  return { points, center: to22(ms.reduce((a, m) => a + m.center, 0)), purpose: { sky, earth, personal: to22(sky + earth) } };
+}
+
 /** Compatibility matrix of a pair: pointwise sums of both matrices, reduced to 1–22. */
 export function pairMatrix(iso1: string, iso2: string): { points: MatrixPoint[]; center: number; purpose: MatrixPurpose } {
   const m1 = buildMatrix(iso1), m2 = buildMatrix(iso2);

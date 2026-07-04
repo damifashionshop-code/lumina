@@ -24,6 +24,8 @@ export interface UserInput {
 
 export interface Report {
   name: string;
+  dob: string;
+  focus: string;
   archetypeValue: number;
   lifePathValue: number;
   matrix: { points: MatrixPoint[]; center: number; purpose: MatrixPurpose };
@@ -49,6 +51,8 @@ export function generateReport(input: UserInput): Report {
   const rndEn = mulberry32(seed ^ 0x9e3779b9);
   return {
     name: input.name.trim() || '✨',
+    dob: input.dob,
+    focus: input.ikigai.focus,
     archetypeValue: matrix.center,
     lifePathValue: lp,
     matrix,

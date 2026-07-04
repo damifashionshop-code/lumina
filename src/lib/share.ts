@@ -12,6 +12,37 @@ export async function shareText(title: string, text: string, url: string): Promi
   return 'copied';
 }
 
+/** Encode name+dob+focus into a URL-safe token — the whole "database" lives
+    inside the link itself. No server, fully private. */
+export function encodeShare(name: string, dob: string, focus: string): string {
+  const json = JSON.stringify([name, dob, focus]);
+  return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+export function decodeShare(token: string): { name: string; dob: string; focus: string } | null {
+  try {
+    const b64 = token.replace(/-/g, '+').replace(/_/g, '/');
+    const [name, dob, focus] = JSON.parse(decodeURIComponent(escape(atob(b64))));
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) return null;
+    return { name: String(name).slice(0, 40), dob, focus: String(focus).slice(0, 20) };
+  } catch { return null; }
+}
+
+/** Build and download an .ics calendar with the bright days of a month. */
+export function downloadIcs(dates: Date[], summary: string, description: string) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const events = dates.map((d) => {
+    const ymd = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+    return `BEGIN:VEVENT\r\nUID:lumina-${ymd}@lumina\r\nDTSTART;VALUE=DATE:${ymd}\r\nSUMMARY:${summary}\r\nDESCRIPTION:${description}\r\nEND:VEVENT`;
+  }).join('\r\n');
+  const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Lumina//Bright days//EN\r\n${events}\r\nEND:VCALENDAR`;
+  const a = document.createElement('a');
+  a.download = 'lumina-bright-days.ics';
+  a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
 /** Draw a 1080×1350 Pearl-mist story card and download it as PNG. */
 export function downloadShareCard(opts: { name: string; archetype: string; motto: string; title: string; url: string }) {
   const W = 1080, H = 1350;

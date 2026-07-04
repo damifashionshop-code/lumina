@@ -113,3 +113,29 @@ export function stopMusic() {
   musicNodes?.stop();
   musicNodes = null;
 }
+
+// ── Audio report: the browser's free Web Speech API reads the report ──
+let speakingNow = false;
+
+export function speakReport(text: string, lang: 'ru' | 'en', onDone: () => void) {
+  try {
+    const synth = window.speechSynthesis;
+    if (!synth) { onDone(); return; }
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang === 'ru' ? 'ru-RU' : 'en-US';
+    u.rate = 0.95;
+    u.pitch = 1.05;
+    u.onend = () => { speakingNow = false; onDone(); };
+    u.onerror = () => { speakingNow = false; onDone(); };
+    speakingNow = true;
+    synth.speak(u);
+  } catch { onDone(); }
+}
+
+export function stopSpeaking() {
+  try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
+  speakingNow = false;
+}
+
+export const isSpeaking = () => speakingNow;
