@@ -8,7 +8,7 @@
 import { archetypes, lifePath, strengthsPool, growthPool, weeklyPool, affirmationsPool, mottosPool, resourcesPool, energytexts } from '../content/library';
 import type { L, ResourceRow } from '../content/library';
 import { lifePathNumber, periodEnergy } from './numerology';
-import { buildMatrix, balanceValues } from './matrix';
+import { buildMatrix, balanceValues, yearArcana } from './matrix';
 import type { MatrixPoint, MatrixPurpose } from './matrix';
 import { ikigaiDirections } from './ikigai';
 import type { IkigaiAnswers } from './ikigai';
@@ -27,6 +27,7 @@ export interface Report {
   archetypeValue: number;
   lifePathValue: number;
   matrix: { points: MatrixPoint[]; center: number; purpose: MatrixPurpose };
+  yearArcana: number;
   strengths: L[];
   growth: L[];
   directions: { ru: string[]; en: string[] };
@@ -51,6 +52,7 @@ export function generateReport(input: UserInput): Report {
     archetypeValue: matrix.center,
     lifePathValue: lp,
     matrix,
+    yearArcana: yearArcana(input.dob),
     strengths: pickN(strengthsPool, 5, rnd),
     growth: pickN(growthPool, 3, rnd),
     directions: {

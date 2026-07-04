@@ -48,6 +48,21 @@ export function buildMatrix(iso: string): { points: MatrixPoint[]; center: numbe
   return { points, center: E, purpose: { sky, earth, personal } };
 }
 
+/** Arcana of the current personal year: day + month + digit sum of the current year, reduced to 1–22. */
+export function yearArcana(iso: string, now = new Date()): number {
+  const [, m, d] = iso.split('-').map(Number);
+  return to22(to22(d) + m + to22(digitSum(now.getFullYear())));
+}
+
+/** Compatibility matrix of a pair: pointwise sums of both matrices, reduced to 1–22. */
+export function pairMatrix(iso1: string, iso2: string): { points: MatrixPoint[]; center: number; purpose: MatrixPurpose } {
+  const m1 = buildMatrix(iso1), m2 = buildMatrix(iso2);
+  const points = m1.points.map((pt, i) => ({ key: pt.key, value: to22(pt.value + m2.points[i].value) }));
+  const sky = to22(m1.purpose.sky + m2.purpose.sky);
+  const earth = to22(m1.purpose.earth + m2.purpose.earth);
+  return { points, center: to22(m1.center + m2.center), purpose: { sky, earth, personal: to22(sky + earth) } };
+}
+
 /** Balance values 55–95: always a strong, positive picture. */
 export function balanceValues(iso: string, name: string): number[] {
   const seedStr = iso + '|' + name.toLowerCase();
