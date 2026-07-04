@@ -2,13 +2,13 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useLang } from '../i18n';
 import { useSettings } from '../lib/settings';
-import { playClick, playChime } from '../lib/audio';
+import { playClick, playChime, speakReport, stopSpeaking } from '../lib/audio';
 import { haptic } from '../lib/haptics';
 import { archetypes, lifePath } from '../lib/report';
 import { arcanaTexts } from '../content/arcana';
 import type { Report } from '../lib/report';
 import { MatrixWheel, RadarChart, IkigaiVenn, ProgressRing } from '../components/Charts';
-import { shareText, downloadShareCard } from '../lib/share';
+import { shareText, downloadShareCard, encodeShare } from '../lib/share';
 
 function Section({ title, note, children, delay = 0 }: { title: string; note?: string; children: ReactNode; delay?: number }) {
   return (
@@ -41,19 +41,39 @@ function DecodeItem({ label, value }: { label: string; value: number }) {
   );
 }
 
-export default function ReportScreen({ report, onRestart }: { report: Report; onRestart: () => void }) {
+export default function ReportScreen({ report, onRestart, shared = false }: { report: Report; onRestart: () => void; shared?: boolean }) {
   const { t, lang } = useLang();
   const { sound } = useSettings();
   const [toast, setToast] = useState('');
+  const [listening, setListening] = useState(false);
   const arch = archetypes[report.archetypeValue];
   const lp = lifePath[report.lifePathValue];
   const isMaster = [11, 22, 33].includes(report.lifePathValue);
-  const url = typeof location !== 'undefined' ? location.origin + location.pathname : '';
+  const base = typeof location !== 'undefined' ? location.origin + location.pathname : '';
+  // Live share link: the friend opens a real interactive report, not a screenshot.
+  const url = `${base}#/r/${encodeShare(report.name, report.dob, report.focus)}`;
 
-  useEffect(() => { playChime(sound); haptic([15, 60, 15, 60, 30]); }, []); // eslint-disable-line
+  useEffect(() => { playChime(sound); haptic([15, 60, 15, 60, 30]); return () => stopSpeaking(); }, []); // eslint-disable-line
 
   const say = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
   const click = () => { playClick(sound); haptic(10); };
+
+  const audioText = [
+    t.report.greeting(report.name).replace('✨', ''),
+    `${t.report.archetype}: ${arch.name[lang]}. ${arch.desc[lang]}`,
+    `${t.report.lifePath}: ${lp.title[lang]}. ${lp.desc[lang]}`,
+    t.report.strengths + ': ' + report.strengths.map((x) => x[lang]).join('. '),
+    t.report.growth + ': ' + report.growth.map((x) => x[lang]).join(' '),
+    t.report.week + ': ' + report.weekly.map((x) => x[lang]).join(' '),
+    report.affirmations.map((x) => x[lang]).join(' '),
+    `${t.report.motto}: ${report.motto[lang]}`,
+  ].join(' ');
+
+  const toggleListen = () => {
+    click();
+    if (listening) { stopSpeaking(); setListening(false); }
+    else { setListening(true); speakReport(audioText, lang, () => setListening(false)); }
+  };
 
   const storyText = `${t.report.shareText(arch.name[lang], report.motto[lang])} ${url}`;
 
@@ -271,9 +291,12 @@ export default function ReportScreen({ report, onRestart }: { report: Report; on
           className="btn-ghost"
           onClick={async () => { click(); await navigator.clipboard.writeText(storyText); say(t.report.copied); }}
         >{t.report.btnCopy}</button>
-        <button className="btn-ghost" onClick={() => { click(); onRestart(); }}>{t.report.btnAgain}</button>
+        <button className="btn-ghost" onClick={toggleListen} aria-pressed={listening}>{listening ? t.report.btnListenStop : t.report.btnListen}</button>
+        <button className="btn-ghost" onClick={() => { click(); onRestart(); }}>{shared ? t.report.sharedCta : t.report.btnAgain}</button>
         <Link className="btn-ghost" to="/pair" onClick={click}>{t.report.btnPair} 💞</Link>
-        <button className="btn-ghost !border-lavender/30 !text-pearl/60" onClick={clearData}>{t.report.clearData}</button>
+        <Link className="btn-ghost" to="/day" state={{ dob: report.dob }} onClick={click}>{t.report.btnDay} ☀️</Link>
+        <Link className="btn-ghost" to="/group" onClick={click}>{t.report.btnGroup} 👥</Link>
+        {!shared && <button className="btn-ghost !border-lavender/30 !text-pearl/60" onClick={clearData}>{t.report.clearData}</button>}
       </div>
 
       {toast && (
