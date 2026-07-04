@@ -9,6 +9,9 @@ import FormScreen from './screens/FormScreen';
 import LoadingShow from './screens/LoadingShow';
 import ReportScreen from './screens/ReportScreen';
 import PairScreen from './screens/PairScreen';
+import DayScreen from './screens/DayScreen';
+import GroupScreen from './screens/GroupScreen';
+import SharedReport from './screens/SharedReport';
 import { Terms, Privacy, Disclaimer, HowItWorks } from './pages/Legal';
 import { generateReport } from './lib/report';
 import type { Report, UserInput } from './lib/report';
@@ -48,6 +51,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Flow />} />
           <Route path="/pair" element={<PairScreen />} />
+          <Route path="/day" element={<DayScreen />} />
+          <Route path="/group" element={<GroupScreen />} />
+          <Route path="/r/:data" element={<SharedReport />} />
           <Route path="/how" element={<HowItWorks />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
