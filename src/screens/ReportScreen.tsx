@@ -8,6 +8,7 @@ import { archetypes, lifePath } from '../lib/report';
 import { arcanaTexts } from '../content/arcana';
 import type { Report } from '../lib/report';
 import { MatrixWheel, RadarChart, IkigaiVenn, ProgressRing } from '../components/Charts';
+import { healthMap, ageMap, loveMoney } from '../lib/matrix';
 import { shareText, downloadShareCard, encodeShare } from '../lib/share';
 
 function Section({ title, note, children, delay = 0 }: { title: string; note?: string; children: ReactNode; delay?: number }) {
@@ -52,6 +53,9 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
   const base = typeof location !== 'undefined' ? location.origin + location.pathname : '';
   // Live share link: the friend opens a real interactive report, not a screenshot.
   const url = `${base}#/r/${encodeShare(report.name, report.dob, report.focus)}`;
+  const health = healthMap(report.dob);
+  const ages = ageMap(report.dob);
+  const lm = loveMoney(report.dob);
 
   useEffect(() => { playChime(sound); haptic([15, 60, 15, 60, 30]); return () => stopSpeaking(); }, []); // eslint-disable-line
 
@@ -149,6 +153,15 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
             </div>
           ))}
         </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {([[t.report.loveTitle, lm.love], [t.report.moneyTitle, lm.money]] as const).map(([label, v]) => (
+            <div key={label} className="rounded-2xl border border-gold/40 bg-white/50 p-4 text-center">
+              <p className="text-xs uppercase tracking-wider text-lavender">{label}</p>
+              <p className="mt-1 font-display text-2xl text-champagne">{v} · {archetypes[v].name[lang]}</p>
+              <p className="text-sm text-pearl/80">✦ {arcanaTexts[v].plus[lang]}</p>
+            </div>
+          ))}
+        </div>
       </Section>
 
       {/* Full decoding of every position */}
@@ -161,6 +174,47 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
           <DecodeItem label={t.report.posLabels.sky} value={report.matrix.purpose.sky} />
           <DecodeItem label={t.report.posLabels.earth} value={report.matrix.purpose.earth} />
           <DecodeItem label={t.report.posLabels.personal} value={report.matrix.purpose.personal} />
+        </div>
+      </Section>
+
+      {/* Health map (entertainment format) */}
+      <Section title={t.report.health} note={t.report.healthNote} delay={0.24}>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] text-left text-sm">
+            <thead>
+              <tr className="text-lavender">
+                {t.report.healthCols.map((c) => <th key={c} className="border-b border-lavender/40 pb-2 pr-4 font-medium">{c}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {health.map((r) => (
+                <tr key={r.key}>
+                  <td className="border-b border-lavender/20 py-3 pr-4">
+                    <span className="font-semibold text-champagne">{t.report.chakras[r.key][0]}</span>
+                    <span className="block text-xs text-pearl/60">{t.report.chakras[r.key][1]}</span>
+                  </td>
+                  {[r.fiz, r.en, r.emo].map((v, i) => (
+                    <td key={i} className="border-b border-lavender/20 py-3 pr-4">
+                      <span className="font-semibold text-pearl" title={archetypes[v].name[lang]}>{v}</span>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+
+      {/* Age map: the life circle */}
+      <Section title={t.report.ageMapTitle} note={t.report.ageMapNote} delay={0.26}>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {ages.map((a) => (
+            <div key={a.age} title={archetypes[a.value].name[lang]} className="rounded-xl border border-white/70 bg-white/45 p-3 text-center">
+              <p className="text-xs uppercase tracking-wider text-lavender">{a.age} {t.report.ageYears}</p>
+              <p className="font-display text-xl text-champagne">{a.value}</p>
+              <p className="truncate text-[11px] text-pearl/70">{archetypes[a.value].name[lang]}</p>
+            </div>
+          ))}
         </div>
       </Section>
 
