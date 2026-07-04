@@ -89,6 +89,15 @@ export default function ReportScreen({ report, onRestart }: { report: Report; on
       {/* Matrix */}
       <Section title={t.report.matrix} note={t.report.matrixNote} delay={0.2}>
         <MatrixWheel points={report.matrix.points} center={report.matrix.center} />
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          {([['matrixSky', report.matrix.purpose.sky], ['matrixEarth', report.matrix.purpose.earth], ['matrixPurpose', report.matrix.purpose.personal]] as const).map(([k, v]) => (
+            <div key={k} className="rounded-2xl border border-white/80 bg-white/50 p-4 text-center">
+              <p className="text-xs uppercase tracking-wider text-lavender">{t.report[k]}</p>
+              <p className="mt-1 font-display text-2xl text-champagne">{v}</p>
+              <p className="text-sm text-pearl/85">{archetypes[v].name[lang]}</p>
+            </div>
+          ))}
+        </div>
       </Section>
 
       {/* Strengths */}
