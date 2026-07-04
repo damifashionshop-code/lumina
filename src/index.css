@@ -73,7 +73,10 @@ html.no-anim *, html.no-anim *::before, html.no-anim *::after {
 /* Print styles for the free "Download PDF" (browser print).
    FUTURE: replace with jsPDF / server-side rendering. */
 @media print {
+  @page { margin: 14mm; }
   body { background: #fff !important; color: #3f3574; }
+  .glass { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
   .no-print { display: none !important; }
   .glass { border: 1px solid #ddd; box-shadow: none; background: #fff; }
   .gold-text { color: #4a3f8c; -webkit-text-fill-color: #4a3f8c; }

@@ -8,6 +8,7 @@ import Consent from './screens/Consent';
 import FormScreen from './screens/FormScreen';
 import LoadingShow from './screens/LoadingShow';
 import ReportScreen from './screens/ReportScreen';
+import PairScreen from './screens/PairScreen';
 import { Terms, Privacy, Disclaimer, HowItWorks } from './pages/Legal';
 import { generateReport } from './lib/report';
 import type { Report, UserInput } from './lib/report';
@@ -46,6 +47,7 @@ export default function App() {
       <main>
         <Routes>
           <Route path="/" element={<Flow />} />
+          <Route path="/pair" element={<PairScreen />} />
           <Route path="/how" element={<HowItWorks />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
