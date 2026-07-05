@@ -22,29 +22,30 @@ export function playClick(enabled: boolean) {
   } catch { /* audio unavailable — stay silent */ }
 }
 
-/** Gentle chime for the report reveal. */
+/** Soft warm swell for the report reveal — a slow rise, no bell sound. */
 export function playChime(enabled: boolean) {
   if (!enabled) return;
   try {
     const c = getCtx();
-    [523.25, 659.25, 783.99].forEach((f, i) => {
+    [220.0, 329.63].forEach((f, i) => {
       const o = c.createOscillator();
       const g = c.createGain();
       o.type = 'sine';
       o.frequency.value = f;
-      const t = c.currentTime + i * 0.12;
+      const t = c.currentTime + i * 0.15;
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.06, t + 0.05);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+      g.gain.linearRampToValueAtTime(0.045, t + 1.2);
+      g.gain.linearRampToValueAtTime(0.0001, t + 3.2);
       o.connect(g).connect(c.destination);
       o.start(t);
-      o.stop(t + 1.3);
+      o.stop(t + 3.4);
     });
   } catch { /* silent */ }
 }
 
-/** Ambient music: a warm, low pad plus a slow pentatonic "music box"
-    arpeggio through a soft low-pass filter. Quiet and calm by design. */
+/** Meditation ambient: a deep, slowly breathing drone (A1–A2–E3–A3)
+    through a gently sweeping low-pass filter. No melody, no plucks —
+    just calm space for relaxation. All generated, fully free. */
 export function startMusic() {
   if (musicNodes) return;
   try {
@@ -54,23 +55,37 @@ export function startMusic() {
     master.gain.value = 0;
     const filter = c.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.value = 1100;
+    filter.frequency.value = 650;
+    filter.Q.value = 0.4;
     master.connect(filter).connect(c.destination);
-    master.gain.linearRampToValueAtTime(0.05, c.currentTime + 4);
+    master.gain.linearRampToValueAtTime(0.06, c.currentTime + 6);
 
-    // Warm pad: A2 + E3 + A3, slightly detuned, breathing via LFO
-    const oscs: OscillatorNode[] = [];
-    [110, 164.81, 220.0].forEach((f, i) => {
+    // very slow filter sweep — the "breath" of the pad
+    const fLfo = c.createOscillator();
+    const fLfoGain = c.createGain();
+    fLfo.frequency.value = 0.015;
+    fLfoGain.gain.value = 180;
+    fLfo.connect(fLfoGain).connect(filter.frequency);
+    fLfo.start();
+
+    const oscs: OscillatorNode[] = [fLfo];
+    const voices: [number, number, OscillatorType][] = [
+      [55.0, 0.5, 'sine'],    // A1 — deep root
+      [110.0, 0.34, 'sine'],  // A2
+      [164.81, 0.16, 'sine'], // E3 — soft fifth
+      [220.0, 0.07, 'triangle'], // A3 — faint shimmer
+    ];
+    voices.forEach(([f, vol, type], i) => {
       const o = c.createOscillator();
-      o.type = i === 0 ? 'triangle' : 'sine';
+      o.type = type;
       o.frequency.value = f;
-      o.detune.value = i * 3;
+      o.detune.value = i * 2;
       const g = c.createGain();
-      g.gain.value = 0.3;
+      g.gain.value = vol;
       const lfo = c.createOscillator();
       const lfoGain = c.createGain();
-      lfo.frequency.value = 0.04 + i * 0.025;
-      lfoGain.gain.value = 0.12;
+      lfo.frequency.value = 0.02 + i * 0.017; // 30–60 s breathing cycles
+      lfoGain.gain.value = vol * 0.35;
       lfo.connect(lfoGain).connect(g.gain);
       o.connect(g).connect(master);
       o.start();
@@ -78,32 +93,10 @@ export function startMusic() {
       oscs.push(o, lfo);
     });
 
-    // Gentle "music box": A-major pentatonic, one soft note every ~2.4 s
-    const notes = [440.0, 493.88, 554.37, 659.25, 739.99, 880.0];
-    let step = 0;
-    const playNote = () => {
-      const t = c.currentTime;
-      const o = c.createOscillator();
-      const g = c.createGain();
-      o.type = 'sine';
-      // wander up and down the scale instead of pure randomness
-      step = Math.max(0, Math.min(notes.length - 1, step + (Math.random() > 0.5 ? 1 : -1)));
-      o.frequency.value = notes[step];
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.035, t + 0.08);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
-      o.connect(g).connect(master);
-      o.start(t);
-      o.stop(t + 2.3);
-    };
-    const interval = window.setInterval(playNote, 2400);
-    playNote();
-
     musicNodes = {
       stop: () => {
-        window.clearInterval(interval);
-        master.gain.linearRampToValueAtTime(0, c.currentTime + 1.2);
-        setTimeout(() => oscs.forEach((o) => { try { o.stop(); } catch {} }), 1400);
+        master.gain.linearRampToValueAtTime(0, c.currentTime + 2);
+        setTimeout(() => oscs.forEach((o) => { try { o.stop(); } catch {} }), 2300);
       },
     };
   } catch { /* silent */ }

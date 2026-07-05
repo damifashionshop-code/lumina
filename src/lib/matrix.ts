@@ -144,6 +144,39 @@ export function loveMoney(iso: string): { love: number; money: number } {
   return { love, money: to22(H + love) };
 }
 
+/** Thematic sphere lines: love, family, children-as-care, money,
+    male and female ancestral lines. Derived positions on top of the
+    verified classic base. Entertainment format, symbolic only. */
+export interface LifeSpheres {
+  love: [number, number, number];
+  family: [number, number, number];
+  children: [number, number, number];
+  money: [number, number, number];
+  male: [number, number, number];
+  female: [number, number, number];
+  purpose: number; key: number;
+}
+export function lifeSpheres(iso: string): LifeSpheres {
+  const { A, B, C, D, E: center } = base(iso);
+  const talent = to22(A + B), social = to22(B + C), growth = to22(A + C);
+  const H = to22(talent + social);   // money / resourcefulness
+  const I = to22(talent + growth);   // relationships / partnership
+  const L = to22(D + H + I);         // purpose
+  const P = to22(L + center);        // personal key
+  const m1 = to22(A + C), m2 = to22(m1 + D);
+  const f1 = to22(B + C), f2 = to22(f1 + D);
+  const c1 = to22(B + I), c2 = to22(C + I);
+  return {
+    love: [I, to22(I + B), to22(I + D)],
+    family: [to22(I + C), to22(B + C), to22(I + L)],
+    children: [c1, c2, to22(c1 + c2)],
+    money: [H, to22(H + social), to22(H + L)],
+    male: [m1, m2, to22(m2 + L)],
+    female: [f1, f2, to22(f2 + L)],
+    purpose: L, key: P,
+  };
+}
+
 /** Balance values 55–95: always a strong, positive picture. */
 export function balanceValues(iso: string, name: string): number[] {
   const seedStr = iso + '|' + name.toLowerCase();
