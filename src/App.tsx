@@ -14,6 +14,7 @@ import GroupScreen from './screens/GroupScreen';
 import SharedReport from './screens/SharedReport';
 import { Terms, Privacy, Disclaimer, HowItWorks } from './pages/Legal';
 import { generateReport } from './lib/report';
+import { PaymentProvider } from './lib/payment';
 import type { Report, UserInput } from './lib/report';
 
 type Step = 'hero' | 'consent' | 'form' | 'loading' | 'report';
@@ -44,6 +45,7 @@ function Flow() {
 
 export default function App() {
   return (
+    <PaymentProvider>
     <div className="relative min-h-screen">
       <LiquidBackground />
       <TopBar />
@@ -62,5 +64,6 @@ export default function App() {
       </main>
       <Footer />
     </div>
+    </PaymentProvider>
   );
 }
