@@ -20,6 +20,10 @@ export function MatrixWheel({ points, center }: { points: MatrixPoint[]; center:
       </defs>
       <circle cx={C} cy={C} r={R + 22} fill="url(#mw-glow)" />
       <circle cx={C} cy={C} r={R} fill="none" stroke={LAV} strokeOpacity="0.3" />
+      <line x1={C + Math.cos(Math.PI * 1.25) * R} y1={C + Math.sin(Math.PI * 1.25) * R} x2={C + Math.cos(Math.PI * 0.25) * R} y2={C + Math.sin(Math.PI * 0.25) * R} stroke="#8f6bd6" strokeOpacity="0.5" strokeWidth="1.5"><title>♂</title></line>
+      <line x1={C + Math.cos(Math.PI * -0.25) * R} y1={C + Math.sin(Math.PI * -0.25) * R} x2={C + Math.cos(Math.PI * 0.75) * R} y2={C + Math.sin(Math.PI * 0.75) * R} stroke="#d4537e" strokeOpacity="0.5" strokeWidth="1.5"><title>♀</title></line>
+      <text x={C + Math.cos(Math.PI * 0.25) * R * 0.42} y={C + Math.sin(Math.PI * 0.25) * R * 0.42 + 4} textAnchor="middle" fontSize="13" fill="#d4537e">♥</text>
+      <text x={C + Math.cos(Math.PI * 0.25) * R * 0.72} y={C + Math.sin(Math.PI * 0.25) * R * 0.72 + 4} textAnchor="middle" fontSize="13" fill={GOLD} fontWeight="700">$</text>
       <circle cx={C} cy={C} r={R - 34} fill="none" stroke={LAV} strokeOpacity="0.15" strokeDasharray="2 8" />
       {points.map((p, i) => {
         const a = (i / points.length) * Math.PI * 2 - Math.PI / 2;
@@ -27,7 +31,7 @@ export function MatrixWheel({ points, center }: { points: MatrixPoint[]; center:
         return (
           <g key={p.key}>
             <line x1={C} y1={C} x2={x} y2={y} stroke={LAV} strokeOpacity="0.15" />
-            <circle cx={x} cy={y} r={17} fill="#ffffff" stroke={GOLD} strokeOpacity="0.7" />
+            <circle cx={x} cy={y} r={17} fill="#ffffff" stroke={GOLD} strokeOpacity="0.7"><title>{p.value} · {archetypes[p.value].name[lang]}</title></circle>
             <text x={x} y={y + 5} textAnchor="middle" fill="#4a3f8c" fontSize="14" fontWeight="600">{p.value}</text>
             <text
               x={C + Math.cos(a) * (R + 30)} y={C + Math.sin(a) * (R + 30) + 4}
