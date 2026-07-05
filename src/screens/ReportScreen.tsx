@@ -12,6 +12,10 @@ import { healthMap, ageMap, loveMoney, lifeSpheres, to22 } from '../lib/matrix';
 import { weeklyPool } from '../content/library';
 import { seedFromString, mulberry32, pickN } from '../lib/random';
 import { usePayment } from '../lib/payment';
+import { buildAgePeriods, eventWindows, childrenSymbolic, careerArcana, partnerProfile } from '../lib/agePeriods';
+import type { AgePeriod } from '../lib/agePeriods';
+import { CAREER_MAP } from '../content/themes';
+import type { ThemeKey } from '../content/themes';
 import { shareText, downloadShareCard, encodeShare } from '../lib/share';
 
 function Section({ title, note, children, delay = 0 }: { title: string; note?: string; children: ReactNode; delay?: number }) {
@@ -21,6 +25,41 @@ function Section({ title, note, children, delay = 0 }: { title: string; note?: s
       {note && <p className="mt-1 text-sm text-lavender/75">{note}</p>}
       <div className="mt-5">{children}</div>
     </section>
+  );
+}
+
+function AgeModal({ p, onClose }: { p: AgePeriod; onClose: () => void }) {
+  const { t, lang } = useLang();
+  const a = archetypes[p.arcana];
+  const x = arcanaTexts[p.arcana];
+  const label = (n: number) => (n >= 80 ? t.report.scoreL[0] : n >= 60 ? t.report.scoreL[1] : n >= 40 ? t.report.scoreL[2] : t.report.scoreL[3]);
+  return (
+    <div role="dialog" aria-modal="true" className="no-print fixed inset-0 z-50 flex items-center justify-center bg-indigoDeep/30 px-4 py-6 backdrop-blur-sm" onClick={onClose}>
+      <div className="glass glass-glow max-h-full w-full max-w-lg overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="font-display text-2xl text-champagne">{p.age} {t.report.ageYears} · {p.calendarYear} — {p.arcana} · {a.name[lang]}</h3>
+          <button className="btn-ghost !px-3 !py-1" onClick={onClose} aria-label="close">✕</button>
+        </div>
+        <p className="mt-3 text-sm leading-relaxed text-pearl/90">{x.long[lang]}</p>
+        <div className="mt-4 grid gap-2">
+          {(Object.entries(p.scores) as [ThemeKey, number][]).map(([k, v]) => (
+            <div key={k}>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-pearl/90">{t.report.themes[k]}</span>
+                <span className="text-lavender">{t.report.idx(v)}</span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-lavender/20">
+                <div className="h-full rounded-full bg-gradient-to-r from-[#6b5bb5] to-[#c77fb4]" style={{ width: `${v}%` }} />
+              </div>
+              <p className="mt-0.5 text-[11px] text-pearl/60">{label(v)}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-sm text-pearl/85"><span className="text-lavender">✦ {t.report.periodResource}: </span>{x.plus[lang]}</p>
+        <p className="mt-1 text-sm italic text-pearl/75">{x.tip[lang]}</p>
+        <p className="mt-4 text-xs text-pearl/55">{t.report.ageDisclaimer}</p>
+      </div>
+    </div>
   );
 }
 
@@ -106,6 +145,17 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
   const curIdx = Math.min(15, Math.floor(curAge / 5));
   const curPeriod = ages[curIdx];
   const nextPeriods = [1, 2, 3].map((k) => ages[(curIdx + k) % 16]);
+  const agePeriods = buildAgePeriods(report.dob);
+  const [ageSel, setAgeSel] = useState<AgePeriod | null>(null);
+  const [themeFilter, setThemeFilter] = useState<ThemeKey>('love');
+  const [showTable, setShowTable] = useState(false);
+  const winMeeting = eventWindows(agePeriods, 'fatefulMeeting');
+  const winLove = eventWindows(agePeriods, 'love');
+  const winMarriage = eventWindows(agePeriods, 'marriage');
+  const winChildren = eventWindows(agePeriods, 'children', 18, 55);
+  const childSym = childrenSymbolic(report.dob);
+  const careers = [...new Set(careerArcana(report.dob).flatMap((v) => CAREER_MAP[v][lang]))].slice(0, 8);
+  const partner = partnerProfile(report.dob);
 
   useEffect(() => { playChime(sound); haptic([15, 60, 15, 60, 30]); return () => stopSpeaking(); }, []); // eslint-disable-line
 
@@ -268,15 +318,63 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
 
       {/* Age map: the life circle */}
       <Locked><Section title={t.report.ageMapTitle} note={t.report.ageMapNote} delay={0.26}>
+        <p className="mb-3 text-xs text-lavender">{t.report.ageModalHint}</p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {ages.map((a) => (
-            <div key={a.age} title={archetypes[a.value].name[lang]} className="rounded-xl border border-white/70 bg-white/45 p-3 text-center">
+            <button
+              key={a.age}
+              type="button"
+              onClick={() => setAgeSel(agePeriods[a.age])}
+              title={`${a.value} · ${archetypes[a.value].name[lang]}`}
+              className={`rounded-xl border p-3 text-center transition-all hover:-translate-y-0.5 hover:border-gold/70 hover:bg-white/70 ${a.age === curPeriod.age ? 'border-gold ring-1 ring-gold/50 bg-white/60' : 'border-white/70 bg-white/45'}`}
+            >
               <p className="text-xs uppercase tracking-wider text-lavender">{a.age} {t.report.ageYears}</p>
               <p className="font-display text-xl text-champagne">{a.value}</p>
               <p className="truncate text-[11px] text-pearl/70">{archetypes[a.value].name[lang]}</p>
-            </div>
+            </button>
           ))}
         </div>
+        <button className="btn-ghost no-print mt-5" onClick={() => setShowTable(!showTable)}>
+          {showTable ? t.report.ageTableHide : t.report.ageTableShow}
+        </button>
+        {showTable && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs text-lavender">{t.report.ageTableFilter}:</p>
+            <div className="mb-3 flex flex-wrap gap-2">
+              {(Object.keys(t.report.themes) as ThemeKey[]).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setThemeFilter(k)}
+                  className={`rounded-full border px-3 py-1 text-xs transition-colors ${themeFilter === k ? 'border-gold bg-white/70 text-champagne' : 'border-lavender/40 text-pearl/75'}`}
+                >{t.report.themes[k]}</button>
+              ))}
+            </div>
+            <div className="max-h-96 overflow-y-auto rounded-2xl border border-white/70">
+              <table className="w-full text-left text-xs">
+                <thead className="sticky top-0 bg-white/90">
+                  <tr className="text-lavender">
+                    {t.report.ageTableCols.map((c) => <th key={c} className="px-3 py-2 font-medium">{c}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {agePeriods.map((pp) => {
+                    const hot = pp.scores[themeFilter] >= 60;
+                    return (
+                      <tr key={pp.age} onClick={() => setAgeSel(pp)} className={`cursor-pointer ${hot ? 'bg-white/70' : ''} hover:bg-white/60`}>
+                        <td className={`px-3 py-1.5 ${hot ? 'font-semibold text-champagne' : 'text-pearl/85'}`}>{pp.age}{hot ? ' ✨' : ''}</td>
+                        <td className="px-3 py-1.5 text-pearl/70">{pp.calendarYear}</td>
+                        <td className="px-3 py-1.5 text-pearl/85">{pp.arcana} · {archetypes[pp.arcana].name[lang]}</td>
+                        <td className="px-3 py-1.5 text-pearl/70">{pp.top.map((k) => t.report.themes[k]).join(', ')}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-xs text-pearl/55">{t.report.ageDisclaimer}</p>
+          </div>
+        )}
       </Section></Locked>
 
       {/* Life periods: current + next 3 */}
@@ -323,6 +421,66 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
         </Section>
       ))}
       </Locked>
+
+      {/* Event windows: love, meeting, marriage */}
+      <Locked><Section title={t.report.windowsTitle} note={t.report.windowsNote} delay={0.3}>
+        <div className="grid gap-3">
+          {([[t.report.winMeeting, winMeeting], [t.report.winLove, winLove], [t.report.winMarriage, winMarriage]] as const).map(([label, wins]) => (
+            <div key={label} className="rounded-2xl border border-white/80 bg-white/50 px-4 py-3">
+              <p className="text-xs uppercase tracking-wider text-lavender">{label}</p>
+              <p className="gold-text mt-1 font-display text-2xl">{wins.length ? wins.map((w) => `${w} ${t.report.winYears}`).join(' · ') : '—'}</p>
+            </div>
+          ))}
+        </div>
+      </Section></Locked>
+
+      {/* Children & family energy */}
+      <Locked><Section title={t.report.childrenXTitle} note={t.report.childrenXNote} delay={0.31}>
+        <div className="rounded-2xl border border-gold/40 bg-white/50 p-5 text-center">
+          <p className="text-xs uppercase tracking-widest text-lavender">{t.report.childrenCount}</p>
+          <p className="gold-text mt-1 font-display text-3xl">{t.report.childrenCounts[childSym.key]}</p>
+          <p className="mt-1 text-xs text-pearl/60">{t.report.idx(childSym.score)}</p>
+        </div>
+        <div className="mt-3 rounded-2xl border border-white/80 bg-white/50 px-4 py-3">
+          <p className="text-xs uppercase tracking-wider text-lavender">{t.report.childrenWindows}</p>
+          <p className="gold-text mt-1 font-display text-2xl">{winChildren.length ? winChildren.map((w) => `${w} ${t.report.winYears}`).join(' · ') : '—'}</p>
+        </div>
+      </Section></Locked>
+
+      {/* Career directions */}
+      <Locked><Section title={t.report.careerTitle} note={t.report.careerNote} delay={0.32}>
+        <p className="text-sm text-pearl/85">{t.report.careerLead}</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {careers.map((c) => (
+            <span key={c} className="rounded-full border border-lavender/40 bg-white/55 px-4 py-1.5 text-sm text-pearl/90">{c}</span>
+          ))}
+        </div>
+      </Section></Locked>
+
+      {/* Partner portrait */}
+      <Locked><Section title={t.report.partnerTitle} note={t.report.partnerNote} delay={0.33}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-white/80 bg-white/50 p-4">
+            <p className="text-xs uppercase tracking-wider text-lavender">{t.report.partnerImage}</p>
+            <p className="font-display text-2xl text-champagne">{partner.partner} · {archetypes[partner.partner].name[lang]}</p>
+            <p className="mt-1 text-sm text-pearl/85">{archetypes[partner.partner].desc[lang]}</p>
+          </div>
+          <div className="rounded-2xl border border-white/80 bg-white/50 p-4">
+            <p className="text-xs uppercase tracking-wider text-lavender">{t.report.partnerCharacter}</p>
+            <p className="font-display text-2xl text-champagne">{partner.character} · {archetypes[partner.character].name[lang]}</p>
+            <p className="mt-1 text-sm text-pearl/85">✦ {arcanaTexts[partner.character].plus[lang]}</p>
+          </div>
+        </div>
+        <div className="mt-3 rounded-2xl border border-white/80 bg-white/50 p-4">
+          <p className="text-xs uppercase tracking-wider text-lavender">{t.report.partnerSpheres}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {CAREER_MAP[partner.career][lang].map((c) => (
+              <span key={c} className="rounded-full border border-lavender/40 bg-white/55 px-4 py-1.5 text-sm text-pearl/90">{c}</span>
+            ))}
+          </div>
+          <p className="mt-3 text-sm text-pearl/85"><span className="text-lavender">{t.report.partnerComfort}: </span>{arcanaTexts[partner.partner].tip[lang]}</p>
+        </div>
+      </Section></Locked>
 
       {/* Strengths */}
       <Section title={t.report.strengths} delay={0.25}>
@@ -471,6 +629,7 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
       </div>
 
       <PayModal />
+      {ageSel && <AgeModal p={ageSel} onClose={() => setAgeSel(null)} />}
 
       {toast && (
         <div role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-gold/50 bg-indigoDeep px-6 py-3 text-champagne shadow-lg">
