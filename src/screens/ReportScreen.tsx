@@ -8,7 +8,10 @@ import { archetypes, lifePath } from '../lib/report';
 import { arcanaTexts } from '../content/arcana';
 import type { Report } from '../lib/report';
 import { MatrixWheel, RadarChart, IkigaiVenn, ProgressRing } from '../components/Charts';
-import { healthMap, ageMap, loveMoney } from '../lib/matrix';
+import { healthMap, ageMap, loveMoney, lifeSpheres, to22 } from '../lib/matrix';
+import { weeklyPool } from '../content/library';
+import { seedFromString, mulberry32, pickN } from '../lib/random';
+import { usePayment } from '../lib/payment';
 import { shareText, downloadShareCard, encodeShare } from '../lib/share';
 
 function Section({ title, note, children, delay = 0 }: { title: string; note?: string; children: ReactNode; delay?: number }) {
@@ -18,6 +21,42 @@ function Section({ title, note, children, delay = 0 }: { title: string; note?: s
       {note && <p className="mt-1 text-sm text-lavender/75">{note}</p>}
       <div className="mt-5">{children}</div>
     </section>
+  );
+}
+
+function Locked({ children }: { children: ReactNode }) {
+  const { t } = useLang();
+  const { paid, openPay } = usePayment();
+  if (paid) return <>{children}</>;
+  return (
+    <div className="relative">
+      <div aria-hidden="true" className="pointer-events-none select-none blur-md">{children}</div>
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <p className="font-display text-2xl text-champagne">{t.pay.locked}</p>
+        <p className="max-w-sm text-sm text-pearl/75">{t.pay.lockedNote}</p>
+        <button className="btn-primary no-print" onClick={openPay}>{t.pay.unlock}</button>
+      </div>
+    </div>
+  );
+}
+
+function PayModal() {
+  const { t } = useLang();
+  const { open, closePay, mockPay } = usePayment();
+  if (!open) return null;
+  return (
+    <div role="dialog" aria-modal="true" className="no-print fixed inset-0 z-50 flex items-center justify-center bg-indigoDeep/30 px-5 backdrop-blur-sm">
+      <div className="glass glass-glow w-full max-w-md p-7 text-center">
+        <h3 className="font-display text-3xl text-champagne">{t.pay.modalTitle}</h3>
+        <p className="mt-3 text-sm leading-relaxed text-pearl/85">{t.pay.modalText}</p>
+        <p className="gold-text mt-4 font-display text-5xl">{t.pay.price}</p>
+        {/* MOCK PAYMENT — replace with Kaspi Pay / CloudPayments / Stripe
+            checkout + server-side verification (see src/lib/payment.tsx) */}
+        <button className="btn-primary mt-5 w-full" onClick={mockPay}>{t.pay.mock}</button>
+        <button className="btn-ghost mt-3 w-full" onClick={closePay}>{t.pay.cancel}</button>
+        <p className="mt-4 text-xs text-pearl/55">{t.pay.mockNote}</p>
+      </div>
+    </div>
   );
 }
 
@@ -56,6 +95,17 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
   const health = healthMap(report.dob);
   const ages = ageMap(report.dob);
   const lm = loveMoney(report.dob);
+  const spheres = lifeSpheres(report.dob);
+  const plan7 = pickN(weeklyPool, 7, mulberry32(seedFromString(report.dob + '|plan7')));
+  const { paid, openPay } = usePayment();
+  const bornYear = Number(report.dob.slice(0, 4));
+  const bornMonthDay = report.dob.slice(5);
+  const nowD = new Date();
+  const nowMonthDay = `${String(nowD.getMonth() + 1).padStart(2, '0')}-${String(nowD.getDate()).padStart(2, '0')}`;
+  const curAge = Math.max(0, nowD.getFullYear() - bornYear - (nowMonthDay < bornMonthDay ? 1 : 0));
+  const curIdx = Math.min(15, Math.floor(curAge / 5));
+  const curPeriod = ages[curIdx];
+  const nextPeriods = [1, 2, 3].map((k) => ages[(curIdx + k) % 16]);
 
   useEffect(() => { playChime(sound); haptic([15, 60, 15, 60, 30]); return () => stopSpeaking(); }, []); // eslint-disable-line
 
@@ -108,6 +158,9 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
       <header className="animate-fadeUp text-center">
         <h2 className="gold-text font-display text-5xl font-semibold md:text-6xl">{t.report.greeting(report.name)}</h2>
         <p className="mt-3 text-sm text-lavender/80">{t.report.greetingSub}</p>
+        {paid
+          ? <p className="mt-2 text-xs text-gold">{t.pay.paidBadge}</p>
+          : <p className="mt-2 text-xs text-pearl/55">{t.pay.freeNote}</p>}
       </header>
 
       {/* Archetype */}
@@ -165,7 +218,7 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
       </Section>
 
       {/* Full decoding of every position */}
-      <Section title={t.report.decode} note={t.report.decodeNote} delay={0.22}>
+      <Locked><Section title={t.report.decode} note={t.report.decodeNote} delay={0.22}>
         <div className="grid gap-3">
           {report.matrix.points.map((p) => (
             <DecodeItem key={p.key} label={t.report.posLabels[p.key]} value={p.value} />
@@ -175,15 +228,15 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
           <DecodeItem label={t.report.posLabels.earth} value={report.matrix.purpose.earth} />
           <DecodeItem label={t.report.posLabels.personal} value={report.matrix.purpose.personal} />
         </div>
-      </Section>
+      </Section></Locked>
 
       {/* Health map (entertainment format) */}
-      <Section title={t.report.health} note={t.report.healthNote} delay={0.24}>
+      <Locked><Section title={t.report.health} note={t.report.healthNote} delay={0.24}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[420px] text-left text-sm">
             <thead>
               <tr className="text-lavender">
-                {t.report.healthCols.map((c) => <th key={c} className="border-b border-lavender/40 pb-2 pr-4 font-medium">{c}</th>)}
+                {[...t.report.healthCols, t.report.healthRec].map((c) => <th key={c} className="border-b border-lavender/40 pb-2 pr-4 font-medium">{c}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -198,15 +251,23 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
                       <span className="font-semibold text-pearl" title={archetypes[v].name[lang]}>{v}</span>
                     </td>
                   ))}
+                  <td className="border-b border-lavender/20 py-3 text-xs text-pearl/70">{arcanaTexts[r.emo].tip[lang]}</td>
                 </tr>
               ))}
+              <tr>
+                <td className="py-3 pr-4 font-semibold text-champagne">{t.report.healthTotal}</td>
+                {(['fiz', 'en', 'emo'] as const).map((k) => (
+                  <td key={k} className="py-3 pr-4 font-semibold text-gold">{to22(health.reduce((a, r) => a + r[k], 0))}</td>
+                ))}
+                <td className="py-3 text-xs text-pearl/70">✨</td>
+              </tr>
             </tbody>
           </table>
         </div>
-      </Section>
+      </Section></Locked>
 
       {/* Age map: the life circle */}
-      <Section title={t.report.ageMapTitle} note={t.report.ageMapNote} delay={0.26}>
+      <Locked><Section title={t.report.ageMapTitle} note={t.report.ageMapNote} delay={0.26}>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {ages.map((a) => (
             <div key={a.age} title={archetypes[a.value].name[lang]} className="rounded-xl border border-white/70 bg-white/45 p-3 text-center">
@@ -216,12 +277,57 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
             </div>
           ))}
         </div>
-      </Section>
+      </Section></Locked>
+
+      {/* Life periods: current + next 3 */}
+      <Locked><Section title={t.report.periodsTitle} note={t.report.periodsNote} delay={0.27}>
+        <p className="text-sm text-lavender">{t.report.currentAge(curAge)}</p>
+        <div className="mt-3 rounded-2xl border border-gold/40 bg-white/50 p-5">
+          <p className="text-xs uppercase tracking-widest text-lavender">{t.report.currentPeriod} · {curPeriod.age}–{curPeriod.age + 5} {t.report.ageYears}</p>
+          <p className="gold-text mt-1 font-display text-3xl">{curPeriod.value} · {archetypes[curPeriod.value].name[lang]}</p>
+          <p className="mt-2 text-sm leading-relaxed text-pearl/90">{arcanaTexts[curPeriod.value].long[lang]}</p>
+          <p className="mt-2 text-sm text-pearl/85"><span className="text-lavender">✦ {t.report.periodResource}: </span>{arcanaTexts[curPeriod.value].plus[lang]}</p>
+          <p className="mt-1 text-sm text-pearl/85"><span className="text-lavender">🌱 {t.report.periodAttention}: </span>{arcanaTexts[curPeriod.value].growth[lang]}</p>
+          <p className="mt-1 text-sm italic text-pearl/70">{arcanaTexts[curPeriod.value].tip[lang]}</p>
+        </div>
+        <h4 className="mt-6 font-display text-xl text-champagne">{t.report.nextPeriods}</h4>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          {nextPeriods.map((pp) => (
+            <div key={pp.age} className="rounded-2xl border border-white/80 bg-white/50 p-4">
+              <p className="text-xs uppercase tracking-wider text-lavender">{pp.age} {t.report.ageYears}</p>
+              <p className="font-display text-2xl text-champagne">{pp.value} · {archetypes[pp.value].name[lang]}</p>
+              <p className="mt-1 text-xs text-pearl/75">✦ {arcanaTexts[pp.value].plus[lang]}</p>
+            </div>
+          ))}
+        </div>
+      </Section></Locked>
+
+      {/* Sphere lines: love, family, children, money, ancestry */}
+      <Locked>
+      {(Object.entries({ love: spheres.love, family: spheres.family, children: spheres.children, money: spheres.money, male: spheres.male, female: spheres.female }) as [string, [number, number, number]][]).map(([key, vals], si) => (
+        <Section key={key} title={t.report.spheres[key][0]} note={t.report.spheres[key][1]} delay={0.28 + si * 0.02}>
+          <div className="grid gap-3">
+            {vals.map((v, i) => (
+              <div key={i} className="rounded-2xl border border-white/80 bg-white/50 px-4 py-3">
+                <p className="text-xs uppercase tracking-wider text-lavender">{t.report.spheres[key][2][i]}</p>
+                <p className="font-display text-xl text-champagne">{v} · {archetypes[v].name[lang]}</p>
+                <p className="mt-1 text-sm text-pearl/85">
+                  {i < 2
+                    ? <><span className="text-lavender">✦ {t.report.sphereHelps}: </span>{arcanaTexts[v].plus[lang]}</>
+                    : <><span className="text-lavender">🌱 {t.report.sphereGrow}: </span>{arcanaTexts[v].growth[lang]}</>}
+                </p>
+              </div>
+            ))}
+            <p className="text-sm italic text-pearl/70"><span className="not-italic text-lavender">{t.report.sphereTip}: </span>{arcanaTexts[vals[0]].tip[lang]}</p>
+          </div>
+        </Section>
+      ))}
+      </Locked>
 
       {/* Strengths */}
       <Section title={t.report.strengths} delay={0.25}>
         <ul className="grid gap-3 sm:grid-cols-2">
-          {report.strengths.map((s, i) => (
+          {(paid ? report.strengths : report.strengths.slice(0, 3)).map((s, i) => (
             <li key={i} className="rounded-2xl border border-white/80 bg-white/50 px-4 py-3 text-pearl/90">
               <span className="mr-2 text-gold">✦</span>{s[lang]}
             </li>
@@ -232,7 +338,7 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
       {/* Growth zones */}
       <Section title={t.report.growth} note={t.report.growthNote} delay={0.3}>
         <ul className="grid gap-3">
-          {report.growth.map((g, i) => (
+          {(paid ? report.growth : report.growth.slice(0, 1)).map((g, i) => (
             <li key={i} className="rounded-2xl border border-lavender/35 bg-lavender/10 px-4 py-3 leading-relaxed text-pearl/90">
               <span className="mr-2">🌱</span>{g[lang]}
             </li>
@@ -315,6 +421,17 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
         </ul>
       </Section>
 
+      <Locked><Section title={t.report.plan7} note={t.report.plan7Note} delay={0.58}>
+        <ol className="grid gap-3">
+          {plan7.map((w, i) => (
+            <li key={i} className="flex items-start gap-3 rounded-2xl border border-white/80 bg-white/50 px-4 py-3 text-pearl/90">
+              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-gold/50 text-xs font-semibold text-gold">{i + 1}</span>
+              <span><span className="mr-1 text-xs uppercase tracking-wider text-lavender">{t.report.dayN(i + 1)}.</span> {w[lang]}</span>
+            </li>
+          ))}
+        </ol>
+      </Section></Locked>
+
       <Section title={t.report.affirmations} delay={0.6}>
         <div className="grid gap-3 text-center">
           {report.affirmations.map((a, i) => (
@@ -335,7 +452,7 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
       <div className="no-print mt-8 flex flex-wrap items-center justify-center gap-3">
         {/* Free print-to-PDF. FUTURE: premium PDF via jsPDF or a serverless
             endpoint; gate behind payment (Stripe/Paddle) for premium tier. */}
-        <button className="btn-primary" onClick={() => { click(); window.print(); }}>{t.report.btnDownload}</button>
+        <button className="btn-primary" onClick={() => { click(); if (paid) window.print(); else openPay(); }}>{t.report.btnDownload}</button>
         <button className="btn-ghost" onClick={doShare}>{t.report.btnShare}</button>
         <button
           className="btn-ghost"
@@ -352,6 +469,8 @@ export default function ReportScreen({ report, onRestart, shared = false }: { re
         <Link className="btn-ghost" to="/group" onClick={click}>{t.report.btnGroup} 👥</Link>
         {!shared && <button className="btn-ghost !border-lavender/30 !text-pearl/60" onClick={clearData}>{t.report.clearData}</button>}
       </div>
+
+      <PayModal />
 
       {toast && (
         <div role="status" className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-gold/50 bg-indigoDeep px-6 py-3 text-champagne shadow-lg">
